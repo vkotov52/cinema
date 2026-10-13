@@ -11,8 +11,8 @@
 	<groupId>com.cinema</groupId>
 	<artifactId>cinema</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name/>
-	<description/>
+	<name>cinema</name>
+	<description>Система управления кинотеатром</description>
 	<url/>
 	<licenses>
 		<license/>
