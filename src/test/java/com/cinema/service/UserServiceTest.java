@@ -24,8 +24,8 @@ class UserServiceTest {
 
     @Test
     void register_shouldCreateSubclassMatchingRole() {
-        User admin = fixture.userService.register(UserRole.ADMIN, "admin", "pass123", "Админов", "Адам", "a@a.test");
-        User manager = fixture.userService.register(UserRole.MANAGER, "manager", "pass123", "Менеджеров", "Макс", "m@a.test");
+        User admin = fixture.userService.register(UserRole.ADMIN, "admin", "pass123", "Админ", "Админ", "a@a.test");
+        User manager = fixture.userService.register(UserRole.MANAGER, "manager", "pass123", "Иванов", "Макс", "m@a.test");
         User customer = fixture.userService.register(UserRole.CUSTOMER, "anna", "pass123", "Петрова", "Анна", "c@a.test");
 
         assertTrue(admin instanceof AdminUser);
@@ -40,7 +40,7 @@ class UserServiceTest {
         fixture.createCustomer("anna");
 
         assertThrows(IllegalStateException.class, () -> fixture.userService.register(
-                UserRole.CUSTOMER, "anna", "pass123", "Другая", "Анна", "other@mail.test"));
+                UserRole.CUSTOMER, "anna", "pass123", "Иванова", "Анна", "other@mail.test"));
     }
 
     @Test
