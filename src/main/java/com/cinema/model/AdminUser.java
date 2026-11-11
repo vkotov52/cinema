@@ -1,13 +1,19 @@
 package com.cinema.model;
 
+import jakarta.persistence.DiscriminatorValue;
+import jakarta.persistence.Entity;
+
+/** JPA-сущность пользователя с ролью ADMIN. */
+@Entity
+@DiscriminatorValue("ADMIN")
 public class AdminUser extends User {
 
-    public AdminUser(String login, String password, String lastName, String firstName, String email) {
-        super(login, password, lastName, firstName, email);
+    /** Пустой конструктор без аргументов, требуемый для создания экземпляра при загрузке из БД. */
+    protected AdminUser() {
     }
 
-    @Override
-    public UserRole getRole() {
-        return UserRole.ADMIN;
+    /** Конструктор для создания нового администратора с заданными данными и фиксированной ролью ADMIN. */
+    public AdminUser(String login, String password, String lastName, String firstName, String email) {
+        super(login, password, lastName, firstName, email, UserRole.ADMIN);
     }
 }

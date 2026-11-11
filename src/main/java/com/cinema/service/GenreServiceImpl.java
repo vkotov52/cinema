@@ -1,46 +1,63 @@
 package com.cinema.service;
 
-import com.cinema.model.Film;
 import com.cinema.model.Genre;
-import com.cinema.repository.EntityRepository;
+import com.cinema.repository.FilmRepository;
+import com.cinema.repository.GenreRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 
+/** Реализация GenreService. Содержит бизнес-логику управления жанрами и проверку связанных фильмов. */
 @Service
+@Transactional
+@RequiredArgsConstructor
 public class GenreServiceImpl implements GenreService {
 
-    private final EntityRepository<Genre, String> genres;
-    private final EntityRepository<Film, String> films;
+    private final GenreRepository genres;
+    private final FilmRepository films;
 
-    public GenreServiceImpl(EntityRepository<Genre, String> genres, EntityRepository<Film, String> films) {
-        this.genres = genres;
-        this.films = films;
-    }
-
+    /** Создаёт новый жанр после проверки уникальности кода. */
     @Override
-    public synchronized Genre create(String genreCode, String name) {
-        if (genres.findByKey(genreCode).isPresent()) {
-            throw new IllegalStateException("Жанр уже существует: " + genreCode);
+    public Genre create(String code, String name) {
+        if (genres.existsById(code)) {
+            throw new IllegalStateException("Жанр уже существует: " + code);
         }
-        return genres.save(new Genre(genreCode, name));
+        return genres.save(new Genre(code, name));
     }
 
+    /** Возвращает список всех жанров. */
     @Override
+    @Transactional(readOnly = true)
     public List<Genre> findAll() {
         return genres.findAll();
     }
 
+    /** Возвращает жанр по коду или выбрасывает NoSuchElementException, если жанр не найден. */
     @Override
-    public synchronized void delete(String genreCode) {
-        if (genres.findByKey(genreCode).isEmpty()) {
-            throw new IllegalArgumentException("Жанр не найден: " + genreCode);
+    @Transactional(readOnly = true)
+    public Genre findById(String code) {
+        return genres.findById(code)
+                .orElseThrow(() -> new NoSuchElementException("Жанр не найден: " + code));
+    }
+
+    /** Обновляет название существующего жанра по его коду. */
+    @Override
+    public Genre update(String code, String name) {
+        Genre genre = findById(code);
+        genre.setName(name);
+        return genres.save(genre);
+    }
+
+    /** Удаляет жанр по коду. Запрещено, если жанр используется хотя бы одним фильмом. */
+    @Override
+    public void delete(String code) {
+        Genre genre = findById(code);
+        if (films.existsByGenres_GenreCode(code)) {
+            throw new IllegalStateException("Жанр используется в фильмах");
         }
-        for (Film film : films.findAll()) {
-            if (film.hasGenre(genreCode)) {
-                throw new IllegalStateException("Нельзя удалить жанр " + genreCode + ": он используется в фильме " + film.getFilmCode());
-            }
-        }
-        genres.deleteByKey(genreCode);
+        genres.delete(genre);
     }
 }
