@@ -1,5 +1,5 @@
 package com.cinema.service;
 
-/** Общая статистика кинотеатра. */
+/** Агрегированная статистика кинотеатра. Возвращается методом ReportService.statistics(). */
 public record Statistics(int halls, int films, int sessions, long soldTickets) {
 }

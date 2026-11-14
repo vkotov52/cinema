@@ -1,46 +1,73 @@
 package com.cinema.service;
 
-import com.cinema.model.FilmSession;
 import com.cinema.model.Hall;
-import com.cinema.repository.EntityRepository;
+import com.cinema.repository.FilmSessionRepository;
+import com.cinema.repository.HallRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 
+/** Реализация HallService. Содержит бизнес-логику управления залами и проверку связанных сеансов. */
 @Service
+@Transactional
+@RequiredArgsConstructor
 public class HallServiceImpl implements HallService {
 
-    private final EntityRepository<Hall, String> halls;
-    private final EntityRepository<FilmSession, String> sessions;
+    private final HallRepository halls;
+    private final FilmSessionRepository sessions;
 
-    public HallServiceImpl(EntityRepository<Hall, String> halls, EntityRepository<FilmSession, String> sessions) {
-        this.halls = halls;
-        this.sessions = sessions;
-    }
-
+    /** Создаёт новый зал после проверки уникальности кода. */
     @Override
-    public synchronized Hall create(String hallCode, String name, int rowsCount, int seatsPerRow) {
-        if (halls.findByKey(hallCode).isPresent()) {
-            throw new IllegalStateException("Зал уже существует: " + hallCode);
+    public Hall create(String code, String name, int rows, int seats) {
+        if (halls.existsById(code)) {
+            throw new IllegalStateException("Зал уже существует: " + code);
         }
-        return halls.save(new Hall(hallCode, name, rowsCount, seatsPerRow));
+        return halls.save(new Hall(code, name, rows, seats));
     }
 
+    /** Возвращает список всех залов. */
     @Override
+    @Transactional(readOnly = true)
     public List<Hall> findAll() {
         return halls.findAll();
     }
 
+    /** Возвращает зал по коду или выбрасывает NoSuchElementException, если зал не найден. */
     @Override
-    public synchronized void delete(String hallCode) {
-        if (halls.findByKey(hallCode).isEmpty()) {
-            throw new IllegalArgumentException("Зал не найден: " + hallCode);
+    @Transactional(readOnly = true)
+    public Hall findById(String code) {
+        return halls.findById(code)
+                .orElseThrow(() -> new NoSuchElementException("Зал не найден: " + code));
+    }
+
+    /** Обновляет параметры зала. Запрещает изменение схемы мест, если для зала существуют сеансы. */
+    @Override
+    public Hall update(String code, String name, int rows, int seats) {
+        Hall hall = findById(code);
+
+        boolean layoutChanged = hall.getRowsCount() != rows || hall.getSeatsPerRow() != seats;
+        if (layoutChanged && sessions.existsByHall_HallCode(code)) {
+            throw new IllegalStateException(
+                    "Нельзя изменить схему мест зала, пока для него существуют сеансы"
+            );
         }
-        for (FilmSession session : sessions.findAll()) {
-            if (session.getHall().getHallCode().equals(hallCode)) {
-                throw new IllegalStateException("Нельзя удалить зал " + hallCode + ": в нём есть сеансы");
-            }
+
+        hall.setName(name);
+        hall.setRowsCount(rows);
+        hall.setSeatsPerRow(seats);
+        return halls.save(hall);
+    }
+
+    /** Удаляет зал по коду. Запрещено, если в зале есть хотя бы один сеанс. */
+    @Override
+    public void delete(String code) {
+        Hall hall = findById(code);
+        if (sessions.existsByHall_HallCode(code)) {
+            throw new IllegalStateException("Нельзя удалить зал с существующими сеансами");
         }
-        halls.deleteByKey(hallCode);
+        halls.delete(hall);
     }
 }
