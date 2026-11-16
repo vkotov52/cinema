@@ -15,7 +15,7 @@ public interface SessionService {
     /** Возвращает список всех сеансов. */
     List<FilmSession> findAll();
 
-    /** Возвращает сеанс по его коду или выбрасывает NoSuchElementException. */
+    /** Возвращает сеанс по его коду или выбрасывает ResourceNotFoundException. */
     FilmSession findById(String code);
 
     /** Возвращает список всех сеансов, проходящих в зале с заданным кодом. */

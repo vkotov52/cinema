@@ -13,7 +13,7 @@ public interface GenreService {
     /** Возвращает список всех жанров. */
     List<Genre> findAll();
 
-    /** Возвращает жанр по его коду или выбрасывает NoSuchElementException. */
+    /** Возвращает жанр по его коду или выбрасывает ResourceNotFoundException. */
     Genre findById(String code);
 
     /** Обновляет название существующего жанра по его коду. */

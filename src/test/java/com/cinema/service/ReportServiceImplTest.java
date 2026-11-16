@@ -1,5 +1,6 @@
 package com.cinema.service;
 
+import com.cinema.exception.ResourceNotFoundException;
 import com.cinema.model.TicketStatus;
 import com.cinema.repository.FilmRepository;
 import com.cinema.repository.FilmSessionRepository;
@@ -12,7 +13,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -52,7 +52,7 @@ class ReportServiceImplTest {
     void sessionRevenueThrowsForUnknownSession() {
         when(sessions.existsById("H1-20261120-1200")).thenReturn(false);
 
-        assertThrows(NoSuchElementException.class, () -> service.sessionRevenue("H1-20261120-1200"));
+        assertThrows(ResourceNotFoundException.class, () -> service.sessionRevenue("H1-20261120-1200"));
     }
 
     /** Проверяет, что LinkedHashMap сохраняет порядок сортировки по убыванию продаж, возвращённый JPQL-запросом. */

@@ -1,5 +1,7 @@
 package com.cinema.service;
 
+import com.cinema.exception.BusinessRuleException;
+import com.cinema.exception.ResourceNotFoundException;
 import com.cinema.model.Ticket;
 import com.cinema.model.TicketStatus;
 import com.cinema.model.User;
@@ -11,7 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 
 /** Реализация TicketService. Содержит бизнес-логику поиска, покупки и удаления билетов. */
@@ -30,12 +31,15 @@ public class TicketServiceImpl implements TicketService {
         return tickets.findAll();
     }
 
-    /** Возвращает билет по номеру или выбрасывает NoSuchElementException, если билет не найден. */
+    /** Возвращает билет по номеру или выбрасывает ResourceNotFoundException, если билет не найден. */
     @Override
     @Transactional(readOnly = true)
     public Ticket findById(String number) {
         return tickets.findById(number)
-                .orElseThrow(() -> new NoSuchElementException("Билет не найден: " + number));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Билет не найден: " + number,
+                        "Проверьте номер билета. Список билетов: GET /api/tickets."
+                ));
     }
 
     /** Возвращает все билеты с заданным статусом. */
@@ -77,11 +81,17 @@ public class TicketServiceImpl implements TicketService {
     @Override
     public Ticket buy(String number, String login) {
         User user = users.findById(login)
-                .orElseThrow(() -> new NoSuchElementException("Пользователь не найден: " + login));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Пользователь не найден: " + login,
+                        "Проверьте логин. Список пользователей: GET /api/users."
+                ));
         Ticket ticket = findById(number);
 
         if (!ticket.trySell(LocalDateTime.now(), user)) {
-            throw new IllegalStateException("Билет уже продан или недоступен");
+            throw new BusinessRuleException(
+                    "Билет уже продан или недоступен",
+                    "Выберите другой свободный билет: GET /api/tickets?sessionCode=...&status=AVAILABLE."
+            );
         }
         return tickets.save(ticket);
     }
@@ -91,7 +101,10 @@ public class TicketServiceImpl implements TicketService {
     public void deleteAvailable(String number) {
         Ticket ticket = findById(number);
         if (ticket.getStatus() != TicketStatus.AVAILABLE) {
-            throw new IllegalStateException("Удалять можно только доступные билеты");
+            throw new BusinessRuleException(
+                    "Удалять можно только доступные билеты",
+                    "Проданный билет удалить нельзя."
+            );
         }
         tickets.delete(ticket);
     }

@@ -1,5 +1,6 @@
 package com.cinema.service;
 
+import com.cinema.exception.ResourceNotFoundException;
 import com.cinema.model.TicketStatus;
 import com.cinema.repository.FilmRepository;
 import com.cinema.repository.FilmSessionRepository;
@@ -12,7 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.NoSuchElementException;
 
 /** Реализация ReportService. Содержит бизнес-логику формирования отчётов и агрегации статистики из разных репозиториев. */
 @Service
@@ -29,7 +29,10 @@ public class ReportServiceImpl implements ReportService {
     @Override
     public BigDecimal sessionRevenue(String sessionCode) {
         if (!sessions.existsById(sessionCode)) {
-            throw new NoSuchElementException("Сеанс не найден: " + sessionCode);
+            throw new ResourceNotFoundException(
+                    "Сеанс не найден: " + sessionCode,
+                    "Проверьте код сеанса. Список сеансов: GET /api/sessions."
+            );
         }
         return tickets.revenueBySession(sessionCode);
     }

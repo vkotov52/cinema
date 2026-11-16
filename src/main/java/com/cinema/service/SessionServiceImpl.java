@@ -1,5 +1,8 @@
 package com.cinema.service;
 
+import com.cinema.exception.BusinessRuleException;
+import com.cinema.exception.InvalidRequestException;
+import com.cinema.exception.ResourceNotFoundException;
 import com.cinema.model.Film;
 import com.cinema.model.FilmSession;
 import com.cinema.model.Hall;
@@ -19,7 +22,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -39,7 +41,10 @@ public class SessionServiceImpl implements SessionService {
     public FilmSession create(String hallCode, String filmCode, LocalDateTime time, BigDecimal price) {
         validatePrice(price);
         if (time == null) {
-            throw new IllegalArgumentException("Время начала обязательно");
+            throw new InvalidRequestException(
+                    "Время начала обязательно",
+                    "Укажите время в формате 2026-11-20:12:00:00."
+            );
         }
 
         Hall hall = findHall(hallCode);
@@ -61,12 +66,15 @@ public class SessionServiceImpl implements SessionService {
         return sessions.findAll();
     }
 
-    /** Возвращает сеанс по коду или выбрасывает NoSuchElementException, если сеанс не найден. */
+    /** Возвращает сеанс по коду или выбрасывает ResourceNotFoundException, если сеанс не найден. */
     @Override
     @Transactional(readOnly = true)
     public FilmSession findById(String code) {
         return sessions.findById(code)
-                .orElseThrow(() -> new NoSuchElementException("Сеанс не найден: " + code));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Сеанс не найден: " + code,
+                        "Проверьте код сеанса. Список сеансов: GET /api/sessions."
+                ));
     }
 
     /** Возвращает список всех сеансов, проходящих в зале с заданным кодом. */
@@ -87,7 +95,10 @@ public class SessionServiceImpl implements SessionService {
 
         boolean filmChanged = !session.getFilm().getFilmCode().equals(filmCode);
         if (filmChanged && hasSoldTickets(sessionTickets)) {
-            throw new IllegalStateException("Нельзя сменить фильм в сеансе с проданными билетами");
+            throw new BusinessRuleException(
+                    "Нельзя сменить фильм в сеансе с проданными билетами",
+                    "Оставьте прежний фильм или измените только цену."
+            );
         }
 
         checkNoOverlap(session.getHall().getHallCode(), session.getStartTime(), film, code);
@@ -109,29 +120,41 @@ public class SessionServiceImpl implements SessionService {
         List<Ticket> sessionTickets = tickets.findBySession_SessionCode(code);
 
         if (hasSoldTickets(sessionTickets)) {
-            throw new IllegalStateException("Нельзя удалить сеанс с проданными билетами");
+            throw new BusinessRuleException(
+                    "Нельзя удалить сеанс с проданными билетами",
+                    "Проданные билеты отменить нельзя, поэтому такой сеанс удалить невозможно."
+            );
         }
 
         tickets.deleteAll(sessionTickets);
         sessions.delete(session);
     }
 
-    /** Находит зал по коду или выбрасывает NoSuchElementException. */
+    /** Находит зал по коду или выбрасывает ResourceNotFoundException. */
     private Hall findHall(String code) {
         return halls.findById(code)
-                .orElseThrow(() -> new NoSuchElementException("Зал не найден: " + code));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Зал не найден: " + code,
+                        "Проверьте код зала. Список залов: GET /api/halls."
+                ));
     }
 
-    /** Находит фильм по коду или выбрасывает NoSuchElementException. */
+    /** Находит фильм по коду или выбрасывает ResourceNotFoundException. */
     private Film findFilm(String code) {
         return films.findById(code)
-                .orElseThrow(() -> new NoSuchElementException("Фильм не найден: " + code));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Фильм не найден: " + code,
+                        "Проверьте код фильма. Список фильмов: GET /api/films."
+                ));
     }
 
     /** Проверяет, что цена не null и не отрицательная. */
     private void validatePrice(BigDecimal price) {
         if (price == null || price.signum() < 0) {
-            throw new IllegalArgumentException("Цена не может быть отрицательной");
+            throw new InvalidRequestException(
+                    "Цена не может быть отрицательной",
+                    "Укажите равную или большую 0."
+            );
         }
     }
 
@@ -149,7 +172,10 @@ public class SessionServiceImpl implements SessionService {
                 .anyMatch(other -> other.overlaps(start, end));
 
         if (overlaps) {
-            throw new IllegalStateException("В этом зале на выбранное время уже есть другой сеанс");
+            throw new BusinessRuleException(
+                    "В этом зале на выбранное время уже есть другой сеанс",
+                    "Выберите другое время начала или другой зал. Сеансы зала: GET /api/sessions?hallCode=..."
+            );
         }
     }
 

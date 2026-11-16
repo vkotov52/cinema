@@ -1,5 +1,7 @@
 package com.cinema.service;
 
+import com.cinema.exception.BusinessRuleException;
+import com.cinema.exception.DuplicateResourceException;
 import com.cinema.model.Genre;
 import com.cinema.repository.FilmRepository;
 import com.cinema.repository.GenreRepository;
@@ -45,7 +47,7 @@ class GenreServiceImplTest {
     void createRejectsDuplicateCode() {
         when(genres.existsById("DRAMA")).thenReturn(true);
 
-        assertThrows(IllegalStateException.class, () -> service.create("DRAMA", "Драма"));
+        assertThrows(DuplicateResourceException.class, () -> service.create("DRAMA", "Драма"));
         verify(genres, never()).save(any());
     }
 
@@ -56,7 +58,7 @@ class GenreServiceImplTest {
         when(genres.findById("DRAMA")).thenReturn(Optional.of(genre));
         when(films.existsByGenres_GenreCode("DRAMA")).thenReturn(true);
 
-        assertThrows(IllegalStateException.class, () -> service.delete("DRAMA"));
+        assertThrows(BusinessRuleException.class, () -> service.delete("DRAMA"));
         verify(genres, never()).delete(any());
     }
 }

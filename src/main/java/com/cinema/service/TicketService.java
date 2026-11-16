@@ -12,7 +12,7 @@ public interface TicketService {
     /** Возвращает список всех билетов. */
     List<Ticket> findAll();
 
-    /** Возвращает билет по его номеру или выбрасывает NoSuchElementException. */
+    /** Возвращает билет по его номеру или выбрасывает ResourceNotFoundException. */
     Ticket findById(String number);
 
     /** Возвращает все билеты с заданным статусом (AVAILABLE, RESERVED или SOLD). */

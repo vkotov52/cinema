@@ -34,7 +34,7 @@ public class SessionController {
         return hallCode == null ? service.findAll() : service.findByHall(hallCode);
     }
 
-    /** Возвращает сеанс по его коду или выбрасывает NotFoundException (HTTP 200 / 404). */
+    /** Возвращает сеанс по его коду или выбрасывает ResourceNotFoundException (HTTP 200 / 404). */
     @GetMapping("/{code}")
     public FilmSession findById(@PathVariable String code) {
         return service.findById(code);

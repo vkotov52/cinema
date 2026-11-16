@@ -1,5 +1,7 @@
 package com.cinema.service;
 
+import com.cinema.exception.BusinessRuleException;
+import com.cinema.exception.InvalidRequestException;
 import com.cinema.model.CustomerUser;
 import com.cinema.model.Film;
 import com.cinema.model.FilmSession;
@@ -86,7 +88,7 @@ class SessionServiceImplTest {
         when(sessions.findByHall_HallCode("H1")).thenReturn(List.of(existing));
 
         assertThrows(
-                IllegalStateException.class,
+                BusinessRuleException.class,
                 () -> service.create("H1", "F1", start.plusMinutes(90), BigDecimal.TEN)
         );
         verify(sessions, never()).save(any());
@@ -104,11 +106,11 @@ class SessionServiceImplTest {
         assertEquals("H1-20261120-1400", result.getSessionCode());
     }
 
-    /** Проверяет валидацию входных данных: попытка создать сеанс с отрицательной ценой должна приводить к IllegalArgumentException. */
+    /** Проверяет валидацию входных данных: попытка создать сеанс с отрицательной ценой должна приводить к InvalidRequestException. */
     @Test
     void createRejectsNegativePrice() {
         assertThrows(
-                IllegalArgumentException.class,
+                InvalidRequestException.class,
                 () -> service.create("H1", "F1", start, new BigDecimal("-1.00"))
         );
         verify(sessions, never()).save(any());
@@ -126,7 +128,7 @@ class SessionServiceImplTest {
         when(tickets.findBySession_SessionCode(session.getSessionCode())).thenReturn(List.of(sold));
 
         assertThrows(
-                IllegalStateException.class,
+                BusinessRuleException.class,
                 () -> service.update(session.getSessionCode(), "F2", BigDecimal.TEN)
         );
     }

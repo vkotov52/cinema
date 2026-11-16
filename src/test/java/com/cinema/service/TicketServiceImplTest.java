@@ -1,5 +1,7 @@
 package com.cinema.service;
 
+import com.cinema.exception.BusinessRuleException;
+import com.cinema.exception.ResourceNotFoundException;
 import com.cinema.model.CustomerUser;
 import com.cinema.model.Film;
 import com.cinema.model.FilmSession;
@@ -17,7 +19,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 
@@ -77,7 +78,7 @@ class TicketServiceImplTest {
         when(users.findById("customer")).thenReturn(Optional.of(customer));
         when(tickets.findById("TKT-000001")).thenReturn(Optional.of(ticket));
 
-        assertThrows(IllegalStateException.class, () -> service.buy("TKT-000001", "customer"));
+        assertThrows(BusinessRuleException.class, () -> service.buy("TKT-000001", "customer"));
         verify(tickets, never()).save(any());
     }
 
@@ -86,7 +87,7 @@ class TicketServiceImplTest {
     void buyThrowsWhenUserDoesNotExist() {
         when(users.findById("customer")).thenReturn(Optional.empty());
 
-        assertThrows(NoSuchElementException.class, () -> service.buy("TKT-000001", "customer"));
+        assertThrows(ResourceNotFoundException.class, () -> service.buy("TKT-000001", "customer"));
         verify(tickets, never()).save(any());
     }
 
@@ -97,7 +98,7 @@ class TicketServiceImplTest {
         ticket.trySell(LocalDateTime.now(), customer);
         when(tickets.findById("TKT-000001")).thenReturn(Optional.of(ticket));
 
-        assertThrows(IllegalStateException.class, () -> service.deleteAvailable("TKT-000001"));
+        assertThrows(BusinessRuleException.class, () -> service.deleteAvailable("TKT-000001"));
         verify(tickets, never()).delete(any());
     }
 }

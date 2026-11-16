@@ -1,5 +1,9 @@
 package com.cinema.service;
 
+import com.cinema.exception.BusinessRuleException;
+import com.cinema.exception.DuplicateResourceException;
+import com.cinema.exception.InvalidRequestException;
+import com.cinema.exception.ResourceNotFoundException;
 import com.cinema.model.AdminUser;
 import com.cinema.model.CustomerUser;
 import com.cinema.model.ManagerUser;
@@ -12,7 +16,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.NoSuchElementException;
 
 /** Реализация UserService. Содержит бизнес-логику регистрации, поиска, обновления и удаления пользователей. */
 @Service
@@ -34,7 +37,10 @@ public class UserServiceImpl implements UserService {
             String email
     ) {
         if (users.existsById(login)) {
-            throw new IllegalStateException("Пользователь уже существует: " + login);
+            throw new DuplicateResourceException(
+                    "Пользователь уже существует: " + login,
+                    "Выберите другой логин."
+            );
         }
         return users.save(createUser(role, login, password, lastName, firstName, email));
     }
@@ -46,12 +52,15 @@ public class UserServiceImpl implements UserService {
         return users.findAll();
     }
 
-    /** Возвращает пользователя по логину или выбрасывает NoSuchElementException, если пользователь не найден. */
+    /** Возвращает пользователя по логину или выбрасывает ResourceNotFoundException, если пользователь не найден. */
     @Override
     @Transactional(readOnly = true)
     public User findById(String login) {
         return users.findById(login)
-                .orElseThrow(() -> new NoSuchElementException("Пользователь не найден: " + login));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Пользователь не найден: " + login,
+                        "Проверьте логин. Список пользователей: GET /api/users."
+                ));
     }
 
     /** Возвращает всех пользователей с заданной ролью. */
@@ -77,7 +86,10 @@ public class UserServiceImpl implements UserService {
     public void delete(String login) {
         User user = findById(login);
         if (tickets.existsByCustomer_Login(login)) {
-            throw new IllegalStateException("Нельзя удалить пользователя, у которого есть билеты");
+            throw new BusinessRuleException(
+                    "Нельзя удалить пользователя, у которого есть билеты",
+                    "Сначала верните все билеты."
+            );
         }
         users.delete(user);
     }
@@ -92,7 +104,10 @@ public class UserServiceImpl implements UserService {
             String email
     ) {
         if (role == null) {
-            throw new IllegalArgumentException("Роль обязательна");
+            throw new InvalidRequestException(
+                    "Роль обязательна",
+                    "Укажите роль: ADMIN, MANAGER или CUSTOMER."
+            );
         }
         return switch (role) {
             case ADMIN -> new AdminUser(login, password, lastName, firstName, email);

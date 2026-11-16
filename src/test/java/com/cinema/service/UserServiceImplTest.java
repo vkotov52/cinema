@@ -1,5 +1,8 @@
 package com.cinema.service;
 
+import com.cinema.exception.BusinessRuleException;
+import com.cinema.exception.DuplicateResourceException;
+import com.cinema.exception.InvalidRequestException;
 import com.cinema.model.CustomerUser;
 import com.cinema.model.ManagerUser;
 import com.cinema.model.User;
@@ -50,7 +53,7 @@ class UserServiceImplTest {
         when(users.existsById("m1")).thenReturn(true);
 
         assertThrows(
-                IllegalStateException.class,
+                DuplicateResourceException.class,
                 () -> service.register(UserRole.MANAGER, "m1", "pw", "Петров", "Пётр", "p@p.ru")
         );
         verify(users, never()).save(any());
@@ -60,7 +63,7 @@ class UserServiceImplTest {
     @Test
     void registerRejectsMissingRole() {
         assertThrows(
-                IllegalArgumentException.class,
+                InvalidRequestException.class,
                 () -> service.register(null, "m1", "pw", "Петров", "Пётр", "p@p.ru")
         );
     }
@@ -86,7 +89,7 @@ class UserServiceImplTest {
         when(users.findById("u")).thenReturn(Optional.of(user));
         when(tickets.existsByCustomer_Login("u")).thenReturn(true);
 
-        assertThrows(IllegalStateException.class, () -> service.delete("u"));
+        assertThrows(BusinessRuleException.class, () -> service.delete("u"));
         verify(users, never()).delete(any());
     }
 }
