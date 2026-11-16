@@ -35,7 +35,7 @@ public class UserController {
         return role == null ? service.findAll() : service.findByRole(role);
     }
 
-    /** Возвращает пользователя по логину или выбрасывает NotFoundException (HTTP 200 / 404). */
+    /** Возвращает пользователя по логину или выбрасывает ResourceNotFoundException (HTTP 200 / 404). */
     @GetMapping("/{login}")
     public User findById(@PathVariable String login) {
         return service.findById(login);

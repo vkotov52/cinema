@@ -46,7 +46,7 @@ public class FilmController {
         return service.findAll();
     }
 
-    /** Возвращает фильм по его коду или выбрасывает NotFoundException (HTTP 200 / 404). */
+    /** Возвращает фильм по его коду или выбрасывает ResourceNotFoundException (HTTP 200 / 404). */
     @GetMapping("/{code}")
     public Film findById(@PathVariable String code) {
         return service.findById(code);

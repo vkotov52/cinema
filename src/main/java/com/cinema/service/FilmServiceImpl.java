@@ -1,5 +1,9 @@
 package com.cinema.service;
 
+import com.cinema.exception.BusinessRuleException;
+import com.cinema.exception.DuplicateResourceException;
+import com.cinema.exception.InvalidRequestException;
+import com.cinema.exception.ResourceNotFoundException;
 import com.cinema.model.Film;
 import com.cinema.model.Genre;
 import com.cinema.repository.FilmRepository;
@@ -11,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Set;
 
 /** Реализация FilmService. Содержит бизнес-логику управления фильмами, валидацию и проверку связанных данных. */
@@ -31,7 +34,10 @@ public class FilmServiceImpl implements FilmService {
     @Override
     public Film create(String code, String title, int duration, String ageRating, Set<String> genreCodes) {
         if (films.existsById(code)) {
-            throw new IllegalStateException("Фильм уже существует: " + code);
+            throw new DuplicateResourceException(
+                    "Фильм уже существует: " + code,
+                    "Выберите другой код фильма или измените существующий через PUT /api/films/{code}."
+            );
         }
         validate(duration, ageRating);
         return films.save(new Film(code, title, duration, ageRating, loadGenres(genreCodes)));
@@ -44,12 +50,15 @@ public class FilmServiceImpl implements FilmService {
         return films.findAll();
     }
 
-    /** Возвращает фильм по коду или выбрасывает NoSuchElementException, если фильм не найден. */
+    /** Возвращает фильм по коду или выбрасывает ResourceNotFoundException, если фильм не найден. */
     @Override
     @Transactional(readOnly = true)
     public Film findById(String code) {
         return films.findById(code)
-                .orElseThrow(() -> new NoSuchElementException("Фильм не найден: " + code));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Фильм не найден: " + code,
+                        "Проверьте код фильма. Список фильмов: GET /api/films."
+                ));
     }
 
     /** Возвращает фильмы, название которых содержит заданную подстроку (без учёта регистра). Пустая строка возвращает все фильмы. */
@@ -92,10 +101,16 @@ public class FilmServiceImpl implements FilmService {
     @Override
     public void delete(String code) {
         if (!films.existsById(code)) {
-            throw new NoSuchElementException("Фильм не найден: " + code);
+            throw new ResourceNotFoundException(
+                    "Фильм не найден: " + code,
+                    "Проверьте код фильма. Список фильмов: GET /api/films."
+            );
         }
         if (sessions.existsByFilm_FilmCode(code)) {
-            throw new IllegalStateException("Нельзя удалить фильм с существующими сеансами");
+            throw new BusinessRuleException(
+                    "Нельзя удалить фильм с существующими сеансами",
+                    "Сначала удалите сеансы с этим фильмом."
+            );
         }
         films.deleteById(code);
     }
@@ -103,21 +118,33 @@ public class FilmServiceImpl implements FilmService {
     /** Проверяет допустимость возрастного рейтинга и длительности фильма. */
     private void validate(int duration, String ageRating) {
         if (!RATINGS.contains(ageRating)) {
-            throw new IllegalArgumentException("Недопустимый возрастной рейтинг: " + ageRating);
+            throw new InvalidRequestException(
+                    "Недопустимый возрастной рейтинг: " + ageRating,
+                    "Допустимые значения: 0+, 6+, 12+, 16+, 18+."
+            );
         }
         if (duration < 1) {
-            throw new IllegalArgumentException("Длительность должна быть положительной");
+            throw new InvalidRequestException(
+                    "Длительность должна быть положительной",
+                    "Укажите длительность от 1 до 600."
+            );
         }
     }
 
     /** Загружает жанры по кодам. Проверяет, что все коды существуют, и выбрасывает исключение при несовпадении. */
     private Set<Genre> loadGenres(Set<String> genreCodes) {
         if (genreCodes == null || genreCodes.isEmpty()) {
-            throw new IllegalArgumentException("Необходимо выбрать хотя бы один жанр");
+            throw new InvalidRequestException(
+                    "Необходимо выбрать хотя бы один жанр",
+                    "Передайте в genreCodes хотя бы один код существующего жанра (GET /api/genres)."
+            );
         }
         Set<Genre> found = new HashSet<>(genres.findAllById(genreCodes));
         if (found.size() != genreCodes.size()) {
-            throw new IllegalArgumentException("Указаны несуществующие жанры");
+            throw new InvalidRequestException(
+                    "Указаны несуществующие жанры",
+                    "Проверьте коды жанров. Список жанров: GET /api/genres."
+            );
         }
         return found;
     }

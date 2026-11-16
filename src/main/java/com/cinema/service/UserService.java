@@ -14,7 +14,7 @@ public interface UserService {
     /** Возвращает список всех пользователей. */
     List<User> findAll();
 
-    /** Возвращает пользователя по логину или выбрасывает NoSuchElementException. */
+    /** Возвращает пользователя по логину или выбрасывает ResourceNotFoundException. */
     User findById(String login);
 
     /** Возвращает всех пользователей с заданной ролью (ADMIN, MANAGER или CUSTOMER). */

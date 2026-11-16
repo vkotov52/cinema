@@ -14,7 +14,7 @@ public interface FilmService {
     /** Возвращает список всех фильмов. */
     List<Film> findAll();
 
-    /** Возвращает фильм по его коду или выбрасывает NoSuchElementException. */
+    /** Возвращает фильм по его коду или выбрасывает ResourceNotFoundException. */
     Film findById(String code);
 
     /** Возвращает фильмы, название которых содержит заданную подстроку (без учёта регистра). */

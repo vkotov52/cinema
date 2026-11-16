@@ -33,7 +33,7 @@ public class HallController {
         return service.findAll();
     }
 
-    /** Возвращает зал по его коду или выбрасывает NotFoundException (HTTP 200 / 404). */
+    /** Возвращает зал по его коду или выбрасывает ResourceNotFoundException (HTTP 200 / 404). */
     @GetMapping("/{code}")
     public Hall findById(@PathVariable String code) {
         return service.findById(code);

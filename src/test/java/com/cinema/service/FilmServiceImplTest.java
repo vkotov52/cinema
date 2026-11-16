@@ -1,5 +1,8 @@
 package com.cinema.service;
 
+import com.cinema.exception.DuplicateResourceException;
+import com.cinema.exception.InvalidRequestException;
+import com.cinema.exception.ResourceNotFoundException;
 import com.cinema.model.Film;
 import com.cinema.model.Genre;
 import com.cinema.repository.FilmRepository;
@@ -11,7 +14,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 
@@ -61,17 +63,17 @@ class FilmServiceImplTest {
         when(films.existsById("F001")).thenReturn(true);
 
         assertThrows(
-                IllegalStateException.class,
+                DuplicateResourceException.class,
                 () -> service.create("F001", "Фильм", 120, "16+", Set.of("DRAMA"))
         );
         verify(films, never()).save(any());
     }
 
-    /** Проверяет валидацию входных данных: попытка создать фильм без жанров должна приводить к IllegalArgumentException. */
+    /** Проверяет валидацию входных данных: попытка создать фильм без жанров должна приводить к InvalidRequestException. */
     @Test
     void createRejectsEmptyGenres() {
         assertThrows(
-                IllegalArgumentException.class,
+                InvalidRequestException.class,
                 () -> service.create("F001", "Фильм", 120, "16+", Set.of())
         );
     }
@@ -82,7 +84,7 @@ class FilmServiceImplTest {
         when(genres.findAllById(Set.of("DRAMA"))).thenReturn(List.of());
 
         assertThrows(
-                IllegalArgumentException.class,
+                InvalidRequestException.class,
                 () -> service.create("F001", "Фильм", 120, "16+", Set.of("DRAMA"))
         );
     }
@@ -92,7 +94,7 @@ class FilmServiceImplTest {
     void findByIdThrowsWhenFilmDoesNotExist() {
         when(films.findById("F001")).thenReturn(Optional.empty());
 
-        assertThrows(NoSuchElementException.class, () -> service.findById("F001"));
+        assertThrows(ResourceNotFoundException.class, () -> service.findById("F001"));
     }
 
     /** Проверяет комбинированный поиск: результаты фильтрации по названию должны дополнительно отсеиваться по наличию заданного жанра. */

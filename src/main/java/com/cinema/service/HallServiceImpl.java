@@ -1,5 +1,8 @@
 package com.cinema.service;
 
+import com.cinema.exception.BusinessRuleException;
+import com.cinema.exception.DuplicateResourceException;
+import com.cinema.exception.ResourceNotFoundException;
 import com.cinema.model.Hall;
 import com.cinema.repository.FilmSessionRepository;
 import com.cinema.repository.HallRepository;
@@ -8,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.NoSuchElementException;
 
 /** Реализация HallService. Содержит бизнес-логику управления залами и проверку связанных сеансов. */
 @Service
@@ -23,7 +25,10 @@ public class HallServiceImpl implements HallService {
     @Override
     public Hall create(String code, String name, int rows, int seats) {
         if (halls.existsById(code)) {
-            throw new IllegalStateException("Зал уже существует: " + code);
+            throw new DuplicateResourceException(
+                    "Зал уже существует: " + code,
+                    "Выберите другой код зала или измените существующий через PUT /api/halls/{code}."
+            );
         }
         return halls.save(new Hall(code, name, rows, seats));
     }
@@ -35,12 +40,15 @@ public class HallServiceImpl implements HallService {
         return halls.findAll();
     }
 
-    /** Возвращает зал по коду или выбрасывает NoSuchElementException, если зал не найден. */
+    /** Возвращает зал по коду или выбрасывает ResourceNotFoundException, если зал не найден. */
     @Override
     @Transactional(readOnly = true)
     public Hall findById(String code) {
         return halls.findById(code)
-                .orElseThrow(() -> new NoSuchElementException("Зал не найден: " + code));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Зал не найден: " + code,
+                        "Проверьте код зала. Список залов: GET /api/halls."
+                ));
     }
 
     /** Обновляет параметры зала. Запрещает изменение схемы мест, если для зала существуют сеансы. */
@@ -50,8 +58,9 @@ public class HallServiceImpl implements HallService {
 
         boolean layoutChanged = hall.getRowsCount() != rows || hall.getSeatsPerRow() != seats;
         if (layoutChanged && sessions.existsByHall_HallCode(code)) {
-            throw new IllegalStateException(
-                    "Нельзя изменить схему мест зала, пока для него существуют сеансы"
+            throw new BusinessRuleException(
+                    "Нельзя изменить схему мест зала, пока для него существуют сеансы",
+                    "Сначала удалите сеансы этого зала или измените только название зала."
             );
         }
 
@@ -66,7 +75,10 @@ public class HallServiceImpl implements HallService {
     public void delete(String code) {
         Hall hall = findById(code);
         if (sessions.existsByHall_HallCode(code)) {
-            throw new IllegalStateException("Нельзя удалить зал с существующими сеансами");
+            throw new BusinessRuleException(
+                    "Нельзя удалить зал с существующими сеансами",
+                    "Сначала удалите сеансы этого зала: GET /api/sessions?hallCode=..."
+            );
         }
         halls.delete(hall);
     }

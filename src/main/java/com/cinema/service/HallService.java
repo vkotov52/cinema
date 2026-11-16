@@ -13,7 +13,7 @@ public interface HallService {
     /** Возвращает список всех залов. */
     List<Hall> findAll();
 
-    /** Возвращает зал по его коду или выбрасывает NoSuchElementException. */
+    /** Возвращает зал по его коду или выбрасывает ResourceNotFoundException. */
     Hall findById(String code);
 
     /** Обновляет параметры существующего зала по его коду. */

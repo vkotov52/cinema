@@ -1,6 +1,7 @@
 package com.cinema.controller;
 
 import com.cinema.controller.dto.BuyTicketRequest;
+import com.cinema.exception.ResourceNotFoundException;
 import com.cinema.model.Ticket;
 import com.cinema.model.TicketStatus;
 import com.cinema.service.TicketService;
@@ -18,7 +19,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.NoSuchElementException;
 
 /** REST-контроллер для управления билетами. Обрабатывает поиск, покупку и удаление билетов. */
 @RestController
@@ -50,7 +50,7 @@ public class TicketController {
         return service.findAll();
     }
 
-    /** Возвращает билет по конкретному месту в сеансе или выбрасывает NoSuchElementException (HTTP 200 / 404). */
+    /** Возвращает билет по конкретному месту в сеансе или выбрасывает ResourceNotFoundException (HTTP 200 / 404). */
     @GetMapping("/seat")
     public Ticket findBySeat(
             @RequestParam String sessionCode,
@@ -58,10 +58,13 @@ public class TicketController {
             @RequestParam int seat
     ) {
         return service.findBySeat(sessionCode, row, seat)
-                .orElseThrow(() -> new NoSuchElementException("Место не найдено"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Место не найдено",
+                        "Проверьте код сеанса, ряд и место."
+                ));
     }
 
-    /** Возвращает билет по его номеру или выбрасывает NoSuchElementException (HTTP 200 / 404). */
+    /** Возвращает билет по его номеру или выбрасывает ResourceNotFoundException (HTTP 200 / 404). */
     @GetMapping("/{number}")
     public Ticket findById(@PathVariable String number) {
         return service.findById(number);

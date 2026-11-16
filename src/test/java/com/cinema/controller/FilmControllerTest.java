@@ -1,5 +1,7 @@
 package com.cinema.controller;
 
+import com.cinema.exception.DuplicateResourceException;
+import com.cinema.exception.ResourceNotFoundException;
 import com.cinema.model.Film;
 import com.cinema.model.Genre;
 import com.cinema.service.FilmService;
@@ -12,7 +14,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.util.NoSuchElementException;
 import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -64,11 +65,31 @@ class FilmControllerTest {
     /** Проверяет, что запрос несуществующего фильма возвращает HTTP 404 и корректное сообщение об ошибке от обработчика исключений. */
     @Test
     void returns404WhenFilmDoesNotExist() throws Exception {
-        when(service.findById("F9")).thenThrow(new NoSuchElementException("Фильм не найден: F9"));
+        when(service.findById("F9")).thenThrow(
+                new ResourceNotFoundException("Фильм не найден: F9", "Проверьте код фильма.")
+        );
 
         mockMvc.perform(get("/api/films/F9"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.error").value("Фильм не найден: F9"));
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.message").value("Фильм не найден: F9"))
+                .andExpect(jsonPath("$.hint").value("Проверьте код фильма."));
+    }
+
+    @Test
+    void returns409WhenFilmCodeAlreadyExists() throws Exception {
+        when(service.create(eq("F1"), eq("Тест"), anyInt(), eq("12+"), anySet())).thenThrow(
+                new DuplicateResourceException("Фильм уже существует: F1", "Выберите другой код фильма.")
+        );
+
+        mockMvc.perform(post("/api/films")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"code":"F1","title":"Тест","durationMin":100,
+                                 "ageRating":"12+","genreCodes":["DRAMA"]}
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.hint").value("Выберите другой код фильма."));
     }
 
     /** Проверяет успешный POST-запрос: валидный JSON-запрос создаёт фильм и возвращает HTTP 201 Created. */
@@ -94,6 +115,8 @@ class FilmControllerTest {
                         .content("""
                                 {"code":"","title":"","durationMin":0,"ageRating":"","genreCodes":[]}
                                 """))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Ошибка проверки данных"))
+                .andExpect(jsonPath("$.hint").exists());
     }
 }

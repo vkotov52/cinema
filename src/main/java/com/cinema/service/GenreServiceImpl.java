@@ -1,5 +1,8 @@
 package com.cinema.service;
 
+import com.cinema.exception.BusinessRuleException;
+import com.cinema.exception.DuplicateResourceException;
+import com.cinema.exception.ResourceNotFoundException;
 import com.cinema.model.Genre;
 import com.cinema.repository.FilmRepository;
 import com.cinema.repository.GenreRepository;
@@ -8,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.NoSuchElementException;
 
 /** Реализация GenreService. Содержит бизнес-логику управления жанрами и проверку связанных фильмов. */
 @Service
@@ -23,7 +25,10 @@ public class GenreServiceImpl implements GenreService {
     @Override
     public Genre create(String code, String name) {
         if (genres.existsById(code)) {
-            throw new IllegalStateException("Жанр уже существует: " + code);
+            throw new DuplicateResourceException(
+                    "Жанр уже существует: " + code,
+                    "Выберите другой код жанра или измените существующий через PUT /api/genres/{code}."
+            );
         }
         return genres.save(new Genre(code, name));
     }
@@ -35,12 +40,15 @@ public class GenreServiceImpl implements GenreService {
         return genres.findAll();
     }
 
-    /** Возвращает жанр по коду или выбрасывает NoSuchElementException, если жанр не найден. */
+    /** Возвращает жанр по коду или выбрасывает ResourceNotFoundException, если жанр не найден. */
     @Override
     @Transactional(readOnly = true)
     public Genre findById(String code) {
         return genres.findById(code)
-                .orElseThrow(() -> new NoSuchElementException("Жанр не найден: " + code));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Жанр не найден: " + code,
+                        "Проверьте код жанра. Список жанров: GET /api/genres."
+                ));
     }
 
     /** Обновляет название существующего жанра по его коду. */
@@ -56,7 +64,10 @@ public class GenreServiceImpl implements GenreService {
     public void delete(String code) {
         Genre genre = findById(code);
         if (films.existsByGenres_GenreCode(code)) {
-            throw new IllegalStateException("Жанр используется в фильмах");
+            throw new BusinessRuleException(
+                    "Жанр используется в фильмах",
+                    "Уберите жанр из фильмов (PUT /api/films/{code}) и повторите удаление."
+            );
         }
         genres.delete(genre);
     }

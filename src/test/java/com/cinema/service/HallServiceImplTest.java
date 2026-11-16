@@ -1,5 +1,6 @@
 package com.cinema.service;
 
+import com.cinema.exception.BusinessRuleException;
 import com.cinema.model.Hall;
 import com.cinema.repository.FilmSessionRepository;
 import com.cinema.repository.HallRepository;
@@ -46,7 +47,7 @@ class HallServiceImplTest {
         when(halls.findById("H1")).thenReturn(Optional.of(new Hall("H1", "Зал", 5, 10)));
         when(sessions.existsByHall_HallCode("H1")).thenReturn(true);
 
-        assertThrows(IllegalStateException.class, () -> service.update("H1", "Зал", 6, 10));
+        assertThrows(BusinessRuleException.class, () -> service.update("H1", "Зал", 6, 10));
         verify(halls, never()).save(any());
     }
 
@@ -68,7 +69,7 @@ class HallServiceImplTest {
         when(halls.findById("H1")).thenReturn(Optional.of(new Hall("H1", "Зал", 5, 10)));
         when(sessions.existsByHall_HallCode("H1")).thenReturn(true);
 
-        assertThrows(IllegalStateException.class, () -> service.delete("H1"));
+        assertThrows(BusinessRuleException.class, () -> service.delete("H1"));
         verify(halls, never()).delete(any());
     }
 }

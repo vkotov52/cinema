@@ -33,7 +33,7 @@ public class GenreController {
         return service.findAll();
     }
 
-    /** Возвращает жанр по его коду или выбрасывает NotFoundException (HTTP 200 / 404). */
+    /** Возвращает жанр по его коду или выбрасывает ResourceNotFoundException (HTTP 200 / 404). */
     @GetMapping("/{code}")
     public Genre findById(@PathVariable String code) {
         return service.findById(code);
